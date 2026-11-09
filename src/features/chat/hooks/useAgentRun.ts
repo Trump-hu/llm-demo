@@ -1,18 +1,48 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { createChatTransport } from '@/core/agent';
 import { messageToPlainText } from '@/core/agent/eventReducer';
-import type { ChatMessage, MessageRole } from '@/core/agent/types';
+import type { AgentEvent, ChatMessage, MessageRole } from '@/core/agent/types';
 import { createId } from '@/shared/utils/id';
 import { useChatStore } from '../store/chatStore';
 
 const transport = createChatTransport();
 
-function toHistory(messages: ChatMessage[]): Array<{ role: MessageRole; content: string }> {
+function reasoningToText(message: ChatMessage): string {
+  return message.parts
+    .filter((part) => part.type === 'reasoning')
+    .map((part) => part.text)
+    .join('\n')
+    .trim();
+}
+
+function toHistory(messages: ChatMessage[]): Array<{
+  role: MessageRole;
+  content: string;
+  reasoningContent?: string;
+}> {
   return messages
     .filter((message) => message.role !== 'system')
-    .map((message) => ({ role: message.role, content: messageToPlainText(message) }))
-    .filter((message) => message.content.length > 0);
+    .map((message) => {
+      const content = messageToPlainText(message);
+      const reasoningContent = message.role === 'assistant' ? reasoningToText(message) : '';
+      return {
+        role: message.role,
+        content,
+        ...(reasoningContent ? { reasoningContent } : {}),
+      };
+    })
+    .filter((message) => message.content.length > 0 || message.reasoningContent);
 }
+
+interface PendingDelta {
+  kind: 'text' | 'reasoning';
+  messageId: string;
+  text: string;
+}
+
+/** 合并高频 token 增量：最多每 40ms 或每 48 个字符刷新一次，避免每个 token 都触发渲染 */
+const DELTA_FLUSH_INTERVAL_MS = 40;
+const DELTA_FLUSH_CHARS = 48;
 
 /**
  * 对话运行编排：把「用户输入 → 助手消息占位 → 事件流 → store 折叠」串起来。
@@ -46,6 +76,51 @@ export function useAgentRun() {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    let pending: PendingDelta | null = null;
+    let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const flush = () => {
+      if (flushTimer) {
+        clearTimeout(flushTimer);
+        flushTimer = null;
+      }
+      if (!pending) return;
+
+      const { kind, messageId, text } = pending;
+      pending = null;
+      useChatStore
+        .getState()
+        .applyEvent(
+          kind === 'text'
+            ? { type: 'text.delta', messageId, text }
+            : { type: 'reasoning.delta', messageId, text },
+        );
+    };
+
+    const scheduleFlush = () => {
+      if (flushTimer) return;
+      flushTimer = setTimeout(flush, DELTA_FLUSH_INTERVAL_MS);
+    };
+
+    const handleEvent = (event: AgentEvent) => {
+      if (event.type !== 'text.delta' && event.type !== 'reasoning.delta') {
+        flush();
+        useChatStore.getState().applyEvent(event);
+        return;
+      }
+
+      const kind = event.type === 'text.delta' ? 'text' : 'reasoning';
+      if (pending && pending.kind === kind && pending.messageId === event.messageId) {
+        pending.text += event.text;
+      } else {
+        flush();
+        pending = { kind, messageId: event.messageId, text: event.text };
+      }
+
+      if (pending.text.length >= DELTA_FLUSH_CHARS) flush();
+      else scheduleFlush();
+    };
+
     try {
       const stream = transport.stream({
         conversationId,
@@ -56,8 +131,9 @@ export function useAgentRun() {
       });
 
       for await (const event of stream) {
-        useChatStore.getState().applyEvent(event);
+        handleEvent(event);
       }
+      flush();
 
       const current = useChatStore
         .getState()
@@ -70,6 +146,7 @@ export function useAgentRun() {
         });
       }
     } catch (error) {
+      flush();
       const aborted = error instanceof DOMException && error.name === 'AbortError';
       useChatStore.getState().applyEvent(
         aborted
@@ -81,6 +158,7 @@ export function useAgentRun() {
             },
       );
     } finally {
+      flush();
       useChatStore.getState().setStreaming(null);
       abortRef.current = null;
     }

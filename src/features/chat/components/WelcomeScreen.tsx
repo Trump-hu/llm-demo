@@ -28,7 +28,7 @@ export function WelcomeScreen({ onPick }: WelcomeScreenProps) {
         </div>
 
         <h1 className="welcome-title">
-          你好，我是 Nexus
+          你好，我是 T-HU
           <br />
           今天想构建什么？
         </h1>

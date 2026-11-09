@@ -65,8 +65,8 @@ export interface ChatRequest {
   conversationId: string;
   /** 本次运行的助手消息 id，由前端生成，后端在事件中原样回传 */
   messageId: string;
-  /** 只发送对模型有意义的历史消息 */
-  messages: Array<{ role: MessageRole; content: string }>;
+  /** 只发送对模型有意义的历史消息；开启工具时 DeepSeek 要求回传 assistant 的推理内容 */
+  messages: Array<{ role: MessageRole; content: string; reasoningContent?: string }>;
   settings: ChatSettings;
   signal: AbortSignal;
 }

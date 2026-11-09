@@ -10,7 +10,7 @@ const FONT_FAMILY =
  */
 export const antdTheme: ThemeConfig = {
   algorithm: theme.darkAlgorithm,
-  cssVar: { prefix: 'nexus' },
+  cssVar: { prefix: 'T-HU' },
   token: {
     colorPrimary: '#22d3ee',
     colorInfo: '#4f8bff',

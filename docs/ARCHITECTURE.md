@@ -66,12 +66,25 @@ interface ChatTransport {
 
 现有实现：
 
-| 实现            | 用途                         | 入口                        |
-| --------------- | ---------------------------- | --------------------------- |
-| `MockTransport` | 无后端演示，固定剧本流式输出 | 默认启用                    |
-| `SseTransport`  | HTTP SSE 对接真实网关        | 设置 `VITE_API_BASE` 后启用 |
+| 实现                | 用途                                                      | 入口                                      |
+| ------------------- | --------------------------------------------------------- | ----------------------------------------- |
+| `MockTransport`     | 无后端演示，固定剧本流式输出                              | 默认启用                                  |
+| `DeepSeekTransport` | DeepSeek 官方 API：delta 映射 + 工具调用循环（最多 5 轮） | 设置 `VITE_DEEPSEEK_BASE_URL` 后启用      |
+| `SseTransport`      | HTTP SSE 对接真实网关                                     | 设置 `VITE_API_BASE` 后启用（优先级最高） |
 
 新增传输层（如 WebSocket、本地 WASM 推理）只需实现该接口并在 `transport/index.ts` 的工厂中注册。
+
+DeepSeek 接入推荐走 Vite 开发代理：`.env.local` 配置 `DEEPSEEK_API_KEY`（仅 Node 侧可见）与
+`VITE_DEEPSEEK_BASE_URL=/deepseek`，由 `vite.config.ts` 的 `/deepseek` 代理注入 `Authorization`
+并转发到 `https://api.deepseek.com`。`deepseek-reasoner` 返回的 `reasoning_content` 会映射为
+`reasoning.delta`，正文映射为 `text.delta`，因此现有渲染链路无需改动。
+
+工具调用由 `DeepSeekTransport` 内部完成协议循环：模型返回 `finish_reason: tool_calls` 时，解析
+`delta.tool_calls` 增量、执行本地工具、追加 `assistant(tool_calls)` 与 `tool` 消息后再次请求，
+直到模型给出最终回答。工具注册在 `src/core/agent/tools/index.ts`，工具结果通过
+`tool.start` / `tool.end` 事件驱动现有 `ToolCallCard` 渲染。注意：请求携带 `tools` 时，
+DeepSeek 要求回传历史 assistant 消息的 `reasoning_content`，`useAgentRun.toHistory` 已从消息的
+`reasoning` 分片中还原该字段。
 
 ## 5. 状态管理约定
 
@@ -88,11 +101,13 @@ interface ChatTransport {
 
 ## 6. 可扩展点速查
 
-| 需求             | 改动位置                                                       |
-| ---------------- | -------------------------------------------------------------- |
-| 新增模型         | `features/chat/constants.ts` → `MODEL_OPTIONS`                 |
-| 新增工具卡片样式 | `ToolCallCard.tsx`（后续抽成注册表）                           |
-| 新增事件类型     | `core/agent/types.ts` + `eventReducer.ts` 增加分支             |
-| 换肤             | `app/theme/antdTheme.ts` + `styles/global.css` 的 `:root` 令牌 |
-| 接入真实后端     | `.env.local` 配置 `VITE_API_BASE`                              |
-| 新增页面         | `app/router.tsx`，页面放 `features/<name>/pages`               |
+| 需求             | 改动位置                                                        |
+| ---------------- | --------------------------------------------------------------- |
+| 新增模型         | `features/chat/constants.ts` → `MODEL_OPTIONS`                  |
+| 新增工具卡片样式 | `ToolCallCard.tsx`（后续抽成注册表）                            |
+| 新增事件类型     | `core/agent/types.ts` + `eventReducer.ts` 增加分支              |
+| 换肤             | `app/theme/antdTheme.ts` + `styles/global.css` 的 `:root` 令牌  |
+| 接入真实后端     | `.env.local` 配置 `VITE_API_BASE`                               |
+| 接入 DeepSeek    | `.env.local` 配置 `DEEPSEEK_API_KEY` + `VITE_DEEPSEEK_BASE_URL` |
+| 新增本地工具     | `src/core/agent/tools/index.ts` → `BUILTIN_TOOLS`               |
+| 新增页面         | `app/router.tsx`，页面放 `features/<name>/pages`                |

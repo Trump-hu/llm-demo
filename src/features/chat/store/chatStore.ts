@@ -177,7 +177,7 @@ export const useChatStore = create<ChatState>()(
         }),
     }),
     {
-      name: 'nexus-agent-chat',
+      name: 'T-HU-agent-chat',
       version: 1,
       partialize: (state) => ({
         conversations: state.conversations,

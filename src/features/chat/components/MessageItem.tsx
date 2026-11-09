@@ -36,7 +36,7 @@ export function MessageItem({ message, isStreaming, onRegenerate }: MessageItemP
       </div>
       <div className="message-body">
         <div className="message-name">
-          <span>Nexus Agent</span>
+          <span>T-HU Agent</span>
           {message.model && <span className="message-model">{message.model}</span>}
         </div>
 

@@ -43,7 +43,7 @@ export function Composer({ streaming, settings, onSettingsChange, onSend, onStop
           value={value}
           onChange={(event) => setValue(event.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="给 Nexus 发送消息，或在 / 后调用工具…"
+          placeholder="给 T-HU 发送消息，或在 / 后调用工具…"
           autoSize={{ minRows: 1, maxRows: 8 }}
           maxLength={MAX_LENGTH}
           variant="borderless"

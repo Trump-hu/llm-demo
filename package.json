@@ -2,7 +2,7 @@
   "name": "llm-demo",
   "private": true,
   "version": "0.1.0",
-  "description": "Nexus · AI Agent Console — React + TypeScript + Ant Design 的 Agent 对话工作台",
+  "description": "T-HU · AI Agent Console — React + TypeScript + Ant Design 的 Agent 对话工作台",
   "type": "module",
   "engines": {
     "node": ">=20.19"

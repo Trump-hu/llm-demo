@@ -1,17 +1,17 @@
-# Nexus · AI Agent Console
+# T-HU · AI Agent Console
 
 面向 AI Agent 场景的前端工作台：深色科技风格的对话界面，支持**流式输出、可折叠推理过程、工具调用轨迹**，并预留了接入真实 Agent 网关的完整扩展点。
 
 ## 技术栈
 
-| 分类     | 选型                                                                |
-| -------- | ------------------------------------------------------------------- |
-| 框架     | React 19 + TypeScript 6（`strict` 全开）                            |
-| 构建     | Vite 8（路径别名 `@/`、代理、SourceMap、按需分包）                  |
-| UI       | Ant Design 6（`darkAlgorithm` + Design Token 统一收口）             |
-| 状态     | Zustand 5（持久化到 localStorage）                                  |
-| 路由     | React Router 7（Data Router）                                       |
-| 内容渲染 | react-markdown + remark-gfm + rehype-highlight                      |
+| 分类     | 选型                                                              |
+| -------- | ----------------------------------------------------------------- |
+| 框架     | React 19 + TypeScript 6（`strict` 全开）                          |
+| 构建     | Vite 8（路径别名 `@/`、代理、SourceMap、按需分包）                |
+| UI       | Ant Design 6（`darkAlgorithm` + Design Token 统一收口）           |
+| 状态     | Zustand 5（持久化到 localStorage）                                |
+| 路由     | React Router 7（Data Router）                                     |
+| 内容渲染 | react-markdown + remark-gfm + rehype-highlight                    |
 | 质量     | ESLint 10（flat config）+ Prettier 3 + Vitest 5 + Testing Library |
 
 ## 快速开始
@@ -26,10 +26,43 @@ npm run format   # 格式化
 ```
 
 默认使用**内置 mock 传输层**，无需后端即可看到完整的「推理 → 工具调用 → 正文」流式效果。
+传输层优先级：`VITE_API_BASE`（自建 Agent 网关）→ `VITE_DEEPSEEK_BASE_URL`（DeepSeek）→ 内置 mock。
+
 接入真实后端时，在 `.env.local` 中设置：
 
 ```bash
 VITE_API_BASE=http://127.0.0.1:8000   # 前端将请求 POST {VITE_API_BASE}/agent/chat
+```
+
+### 接入 DeepSeek
+
+推荐通过 Vite 开发代理调用，API Key 只存在于 Node 侧，不会打进前端产物：
+
+```bash
+# .env.local
+DEEPSEEK_API_KEY=sk-xxxxxxxx
+VITE_DEEPSEEK_BASE_URL=/deepseek        # 浏览器请求同源 /deepseek/chat/completions
+VITE_DEEPSEEK_MODEL=deepseek-chat       # 可选，兜底模型
+```
+
+重启 `npm run dev` 后，Vite 会把 `/deepseek/*` 转发到 `https://api.deepseek.com/*` 并注入 `Authorization`。
+模型下拉框中可直接选择 `DeepSeek Chat` 或 `DeepSeek Reasoner`（Reasoner 的推理过程会进入可折叠的思考面板）。
+
+内置了两个本地工具，模型会按需自动调用：
+
+| 工具               | 能力                                      |
+| ------------------ | ----------------------------------------- |
+| `calculator`       | 安全计算数学表达式（`+ - * / % ^`、括号） |
+| `get_current_time` | 获取当前时间，可指定 IANA 时区            |
+
+工具调用会以 `tool.start` / `tool.end` 事件渲染成可展开的工具卡片，执行结果再回传给模型生成最终回答。
+新增工具只需在 `src/core/agent/tools/index.ts` 中注册 `ToolDefinition`。
+
+也可以让浏览器直连 DeepSeek（仅限本地调试，Key 会暴露在前端代码中）：
+
+```bash
+VITE_DEEPSEEK_BASE_URL=https://api.deepseek.com
+VITE_DEEPSEEK_API_KEY=sk-xxxxxxxx
 ```
 
 ## 目录结构
@@ -44,7 +77,7 @@ src/
 │  └─ agent/
 │     ├─ types.ts           消息模型、会话模型、AgentEvent 协议
 │     ├─ eventReducer.ts    纯函数：事件 → 消息状态
-│     └─ transport/         传输层实现（mock / SSE）与工厂
+│     └─ transport/         传输层实现（mock / SSE / DeepSeek）与工厂
 ├─ features/                业务功能层
 │  └─ chat/
 │     ├─ components/        界面组件（消息、推理面板、工具卡片、输入区…）
@@ -76,7 +109,7 @@ src/
   "conversationId": "conv_xxx",
   "messageId": "msg_xxx",
   "messages": [{ "role": "user", "content": "你好" }],
-  "settings": { "model": "nexus-1.5-pro", "deepThink": true, "webSearch": false }
+  "settings": { "model": "T-HU-1.5-pro", "deepThink": true, "webSearch": false }
 }
 ```
 

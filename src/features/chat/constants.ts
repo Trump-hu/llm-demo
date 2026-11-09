@@ -7,19 +7,31 @@ export interface ModelOption {
 
 export const MODEL_OPTIONS: ModelOption[] = [
   {
-    value: 'nexus-1.5-pro',
-    label: 'Nexus 1.5 Pro',
-    description: '复杂推理与工具编排，适合构建 Agent 工作流',
-    badge: '推荐',
+    value: 'deepseek-chat',
+    label: 'DeepSeek Chat',
+    description: 'DeepSeek V3，通用对话，低延迟',
+    badge: 'API',
   },
   {
-    value: 'nexus-1.5-flash',
-    label: 'Nexus 1.5 Flash',
+    value: 'deepseek-reasoner',
+    label: 'DeepSeek Reasoner',
+    description: 'DeepSeek R1，先输出可折叠的推理过程再回答',
+    badge: '推理',
+  },
+  {
+    value: 'T-HU-1.5-pro',
+    label: 'T-HU 1.5 Pro',
+    description: '内置演示模型，复杂推理与工具编排',
+    badge: 'Mock',
+  },
+  {
+    value: 'T-HU-1.5-flash',
+    label: 'T-HU 1.5 Flash',
     description: '低延迟，适合高频对话与轻量任务',
   },
   {
-    value: 'nexus-coder',
-    label: 'Nexus Coder',
+    value: 'T-HU-coder',
+    label: 'T-HU Coder',
     description: '面向代码生成、重构与调试',
   },
 ];
@@ -71,4 +83,5 @@ export const TOOL_LABELS: Record<string, string> = {
   workspace_search: '检索工作区',
   code_interpreter: '代码执行',
   calculator: '计算器',
+  get_current_time: '获取当前时间',
 };

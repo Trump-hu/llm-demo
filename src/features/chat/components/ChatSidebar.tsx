@@ -108,7 +108,7 @@ export function ChatSidebar({ onSelectConversation, onNewChat, onDismiss }: Chat
           <ThunderboltFilled />
         </div>
         <div className="brand-text">
-          <span className="brand-name">NEXUS</span>
+          <span className="brand-name">T-HU</span>
           <span className="brand-sub">Agent Console</span>
         </div>
       </div>
@@ -205,7 +205,7 @@ export function ChatSidebar({ onSelectConversation, onNewChat, onDismiss }: Chat
               N
             </Avatar>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="user-name">Nexus 开发者</div>
+              <div className="user-name">T-HU 开发者</div>
               <div className="user-plan">Pro 工作区 · 已连接</div>
             </div>
           </div>
